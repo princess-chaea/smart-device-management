@@ -125,6 +125,23 @@
             padding: 0.125rem 0.25rem;
             border-radius: 0.75rem;
         }
+
+        /* Modal Styles */
+        #modal-overlay {
+            @apply fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center opacity-0 pointer-events-none transition-all duration-300;
+        }
+
+        #modal-overlay.active {
+            @apply opacity-100 pointer-events-auto;
+        }
+
+        #modal-content {
+            @apply bg-white rounded-[2.5rem] p-8 max-w-sm w-full mx-4 shadow-2xl transform scale-95 transition-all duration-300;
+        }
+
+        #modal-overlay.active #modal-content {
+            @apply scale-100;
+        }
     </style>
 </head>
 
@@ -402,6 +419,24 @@
         </section>
     </main>
 
+    <!-- Confirmation Modal -->
+    <div id="modal-overlay">
+        <div id="modal-content" class="text-center">
+            <div
+                class="w-20 h-20 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 text-3xl shadow-inner">
+                <i id="modal-icon" class="fas fa-question-circle"></i>
+            </div>
+            <h3 id="modal-title" class="text-xl font-black text-slate-800 mb-2">상태 변경</h3>
+            <p id="modal-message" class="text-slate-500 font-bold text-sm mb-8 leading-relaxed">준비되셨나요?</p>
+            <div class="flex gap-3">
+                <button onclick="closeModal()"
+                    class="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all">취소</button>
+                <button id="modal-confirm"
+                    class="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-slate-800 shadow-lg transition-all">확인</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div id="toast"
         class="fixed bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 rounded-2xl bg-slate-900 text-white shadow-2xl opacity-0 transition-all pointer-events-none z-[100] font-bold text-sm">
@@ -418,10 +453,33 @@
             'Pen_Loss': '펜분실', 'Case_Loss': '케이스분실', 'Film_Loss': '필름분실', 'Earphone_Loss': '이어폰분실', 'Keyboard_Loss': '키보드분실'
         };
 
+        let cachedData = []; // Optimistic UI를 위한 로컬 캐시
+
         function changeQty(btn, step) {
             const input = btn.parentElement.querySelector('input');
             let val = parseInt(input.value) + step;
             input.value = val < 0 ? 0 : val;
+        }
+
+        // Modal Functions
+        let modalResolve = null;
+        function showModal({ title, message, icon }) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-icon').className = `fas ${icon}`;
+            document.getElementById('modal-overlay').classList.add('active');
+            return new Promise(resolve => {
+                modalResolve = resolve;
+                document.getElementById('modal-confirm').onclick = () => {
+                    closeModal();
+                    resolve(true);
+                };
+            });
+        }
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('active');
+            if (modalResolve) modalResolve(false);
+            modalResolve = null;
         }
 
         function switchPage(page) {
@@ -435,7 +493,7 @@
             } else {
                 btnReq.className = "px-4 py-1.5 rounded-md font-bold transition-all text-blue-100 hover:text-white text-sm";
                 btnAdm.className = "px-4 py-1.5 rounded-md font-bold transition-all bg-white text-blue-600 shadow-sm text-sm";
-                fetchData();
+                fetchData(true); // 새 데이터 강제 로드
             }
         }
 
@@ -483,79 +541,110 @@
             finally { btn.disabled = false; btn.innerText = "신청 내용 제출하기"; }
         };
 
-        async function fetchData() {
+        async function fetchData(force = false) {
             if (!SCRIPT_URL) return;
             const container = document.getElementById('adminList');
-            container.innerHTML = `<div class="p-16 text-center text-slate-400 text-sm font-bold">내역을 안전하게 불러오는 중...</div>`;
+            if (force || cachedData.length === 0) {
+                container.innerHTML = `<div class="p-16 text-center text-slate-400 text-sm font-bold">내역을 안전하게 불러오는 중...</div>`;
+            }
             try {
                 const response = await fetch(SCRIPT_URL);
-                const data = await response.json();
-                const pendingCount = data.filter(d => d.Status === '대기').length;
-                document.getElementById('pending-count').innerText = pendingCount;
+                cachedData = await response.json();
+                renderList();
+            } catch (err) {
+                if (cachedData.length === 0) container.innerHTML = `<div class="p-20 text-center text-red-400 font-bold">서버 연결 오류. API URL을 다시 확인해주세요.</div>`;
+            }
+        }
 
-                if (data.length === 0) {
-                    container.innerHTML = `<div class="p-20 text-center text-slate-300 text-sm font-bold">현재 접수된 유지보수 내역이 없습니다.</div>`;
-                    return;
-                }
+        function renderList() {
+            const container = document.getElementById('adminList');
+            const data = cachedData;
+            const pendingCount = data.filter(d => d.Status === '대기').length;
+            document.getElementById('pending-count').innerText = pendingCount;
 
-                container.innerHTML = data.reverse().map(item => {
-                    let itemsHtml = [];
-                    Object.keys(ITEM_LABELS).forEach(key => {
-                        if (item[key] > 0) {
-                            itemsHtml.push(`<span class="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-xl text-[13px] font-black border-2 border-blue-100 shadow-sm transition-all hover:scale-105">${ITEM_LABELS[key]} ${item[key]}개</span>`);
-                        }
-                    });
+            if (data.length === 0) {
+                container.innerHTML = `<div class="p-20 text-center text-slate-300 text-sm font-bold">현재 접수된 유지보수 내역이 없습니다.</div>`;
+                return;
+            }
 
-                    return `
-                        <div class="bg-white rounded-[2.5rem] p-8 shadow-sm border-2 ${item.Status === '완료' ? 'opacity-50 grayscale border-slate-200' : 'border-blue-100 ring-8 ring-blue-50/30'}">
-                            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6 pb-6 border-b-2 border-slate-50">
-                                <div class="flex items-center gap-6">
-                                    <div class="bg-slate-900 text-white w-20 h-20 rounded-[2rem] flex flex-col items-center justify-center leading-tight shadow-xl ring-4 ring-white">
-                                        <span class="text-[12px] font-extrabold mb-0.5 opacity-80">${item.Grade}학년</span>
-                                        <span class="text-3xl font-black">${item.Class}반</span>
-                                    </div>
-                                    <div>
-                                        <div class="flex items-center gap-2 mb-1">
-                                            <h3 class="font-black text-slate-800 text-xl tracking-tight">교실 AS 요청</h3>
-                                            <span class="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full font-bold uppercase tracking-widest leading-none">ID: ${item.ID.slice(-4)}</span>
-                                        </div>
-                                        <p class="text-[11px] text-slate-400 font-extrabold flex items-center gap-1.5 uppercase tracking-tighter">
-                                            <i class="far fa-clock"></i> ${new Date(item.Timestamp).toLocaleString()}
-                                        </p>
-                                    </div>
+            container.innerHTML = [...data].reverse().map(item => {
+                let itemsHtml = [];
+                Object.keys(ITEM_LABELS).forEach(key => {
+                    if (item[key] > 0) {
+                        itemsHtml.push(`<span class="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-xl text-[13px] font-black border-2 border-blue-100 shadow-sm transition-all hover:scale-105">${ITEM_LABELS[key]} ${item[key]}개</span>`);
+                    }
+                });
+
+                return `
+                    <div class="bg-white rounded-[2.5rem] p-8 shadow-sm border-2 ${item.Status === '완료' ? 'opacity-50 grayscale border-slate-200' : 'border-blue-100 ring-8 ring-blue-50/30'}">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6 pb-6 border-b-2 border-slate-50">
+                            <div class="flex items-center gap-6">
+                                <div class="bg-slate-900 text-white w-20 h-20 rounded-[2rem] flex flex-col items-center justify-center leading-tight shadow-xl ring-4 ring-white">
+                                    <span class="text-[12px] font-extrabold mb-0.5 opacity-80">${item.Grade}학년</span>
+                                    <span class="text-3xl font-black">${item.Class}반</span>
                                 </div>
-                                <div class="flex items-center gap-3 w-full md:w-auto">
-                                    <span class="px-5 py-3 rounded-2xl text-[12px] font-black tracking-[0.15em] shadow-inner flex items-center gap-2 ${item.Status === '완료' ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'}">
-                                        <i class="fas ${item.Status === '완료' ? 'fa-check-circle' : 'fa-hourglass-half'}"></i>
-                                        ${item.Status}
-                                    </span>
-                                    <button onclick="updateStatus('${item.ID}', '${item.Status === '완료' ? '대기' : '완료'}')" 
-                                        class="flex-1 md:flex-none px-8 py-3 bg-slate-900 text-white rounded-2xl text-xs font-black hover:bg-slate-800 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
-                                        <i class="fas ${item.Status === '완료' ? 'fa-undo' : 'fa-check'}"></i>
-                                        ${item.Status === '완료' ? '대기 전환' : '완료 처리'}
-                                    </button>
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <h3 class="font-black text-slate-800 text-xl tracking-tight">교실 AS 요청</h3>
+                                        <span class="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full font-bold uppercase tracking-widest leading-none">ID: ${item.ID.slice(-4)}</span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-400 font-extrabold flex items-center gap-1.5 uppercase tracking-tighter">
+                                        <i class="far fa-clock"></i> ${new Date(item.Timestamp).toLocaleString()}
+                                    </p>
                                 </div>
                             </div>
-                            <div class="flex flex-wrap gap-2.5 mb-5">${itemsHtml.length > 0 ? itemsHtml.join('') : '<span class="text-xs text-slate-300 italic font-extrabold px-1">수량 항목 없음</span>'}</div>
-                            ${item.Others ? `<div class="bg-blue-50/50 p-6 rounded-3xl text-[14px] text-slate-700 border-2 border-blue-50/50 font-bold whitespace-pre-wrap leading-relaxed shadow-sm relative overflow-hidden">
-                                <div class="absolute top-0 right-0 p-4 opacity-5"><i class="fas fa-quote-right text-4xl"></i></div>
-                                <div class="flex items-start gap-2">
-                                    <span class="text-blue-400"><i class="fas fa-sticky-note"></i></span>
-                                    <div><strong class="text-slate-900 block mb-1">상세내용</strong> ${item.Others}</div>
-                                </div>
-                            </div>` : ''}
+                            <div class="flex items-center gap-3 w-full md:w-auto">
+                                <span class="px-5 py-3 rounded-2xl text-[12px] font-black tracking-[0.15em] shadow-inner flex items-center gap-2 ${item.Status === '완료' ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'}">
+                                    <i class="fas ${item.Status === '완료' ? 'fa-check-circle' : 'fa-hourglass-half'}"></i>
+                                    ${item.Status}
+                                </span>
+                                <button onclick="confirmStatusUpdate('${item.ID}', '${item.Status}')" 
+                                    class="flex-1 md:flex-none px-8 py-3 bg-slate-900 text-white rounded-2xl text-xs font-black hover:bg-slate-800 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
+                                    <i class="fas ${item.Status === '완료' ? 'fa-undo' : 'fa-check'}"></i>
+                                    ${item.Status === '완료' ? '대기 전환' : '완료 처리'}
+                                </button>
+                            </div>
                         </div>
-                    `;
-                }).join('');
-            } catch (err) { container.innerHTML = `<div class="p-20 text-center text-red-400 font-bold">서버 연결 오류. API URL을 다시 확인해주세요.</div>`; }
+                        <div class="flex flex-wrap gap-2.5 mb-5">${itemsHtml.length > 0 ? itemsHtml.join('') : '<span class="text-xs text-slate-300 italic font-extrabold px-1">수량 항목 없음</span>'}</div>
+                        ${item.Others ? `<div class="bg-blue-50/50 p-6 rounded-3xl text-[14px] text-slate-700 border-2 border-blue-50/50 font-bold whitespace-pre-wrap leading-relaxed shadow-sm relative overflow-hidden">
+                            <div class="absolute top-0 right-0 p-4 opacity-5"><i class="fas fa-quote-right text-4xl"></i></div>
+                            <div class="flex items-start gap-2">
+                                <span class="text-blue-400 leading-none mt-1"><i class="fas fa-sticky-note"></i></span>
+                                <div><strong class="text-slate-900 block mb-1">상세내용</strong> ${item.Others}</div>
+                            </div>
+                        </div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function confirmStatusUpdate(id, currentStatus) {
+            const nextStatus = currentStatus === '완료' ? '대기' : '완료';
+            const confirmed = await showModal({
+                title: nextStatus === '완료' ? '완료 처리할까요?' : '대기 상태로 돌릴까요?',
+                message: nextStatus === '완료' ? '수리가 완료되었음을 시트에 기록합니다.' : '다시 작업이 필요한 항목으로 변경합니다.',
+                icon: nextStatus === '완료' ? 'fa-check-circle' : 'fa-undo'
+            });
+            if (confirmed) updateStatus(id, nextStatus);
         }
 
         async function updateStatus(id, nextStatus) {
+            // Optimistic Update
+            const originalData = JSON.parse(JSON.stringify(cachedData));
+            const item = cachedData.find(d => d.ID === id);
+            if (item) {
+                item.Status = nextStatus;
+                renderList();
+            }
+
             try {
                 await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'update', id, status: nextStatus }) });
-                showToast(`[${nextStatus}] 상태로 변경되었습니다.`);
-                fetchData();
-            } catch (err) { showToast("상태 변경에 실패했습니다."); }
+                showToast(`[${nextStatus}] 상태로 즉시 변경되었습니다.`);
+            } catch (err) {
+                cachedData = originalData; // Rollback
+                renderList();
+                showToast("상태 변경에 실패했습니다. 다시 시도해 주세요.");
+            }
         }
     </script>
 </body>
