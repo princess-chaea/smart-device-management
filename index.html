@@ -459,9 +459,9 @@
             <h3 id="modal-title" class="text-xl font-black text-slate-800 mb-2">상태 변경</h3>
             <p id="modal-message" class="text-slate-500 font-bold text-sm mb-8 leading-relaxed">준비되셨나요?</p>
             <div class="flex gap-3">
-                <button onclick="closeModal()"
+                <button onclick="closeModal(false)"
                     class="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all">취소</button>
-                <button id="modal-confirm"
+                <button onclick="closeModal(true)"
                     class="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-slate-800 shadow-lg transition-all">확인</button>
             </div>
         </div>
@@ -499,18 +499,19 @@
             document.getElementById('modal-icon').className = `fas ${icon}`;
             document.getElementById('modal-overlay').classList.add('active');
             return new Promise(resolve => {
-                modalResolve = resolve;
-                document.getElementById('modal-confirm').onclick = () => {
-                    closeModal();
-                    resolve(true);
-                };
+                modalResolve = resolve; // Store the resolve function
             });
         }
-        function closeModal() {
+        function closeModal(result = false) {
             document.getElementById('modal-overlay').classList.remove('active');
-            if (modalResolve) modalResolve(false);
-            modalResolve = null;
+            if (modalResolve) {
+                modalResolve(result);
+                modalResolve = null;
+            }
         }
+
+        // Modified modal-confirm logic in the DOM logic (will be attached in renderList or init)
+        // Actually, let's just make closeModal take a boolean.
 
         function switchPage(page) {
             document.getElementById('page-request').classList.toggle('hidden', page !== 'request');
