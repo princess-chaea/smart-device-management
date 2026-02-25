@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>하주초 스마트기기 유지보수</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
+        body { font-family: 'Pretendard', sans-serif; background-color: #f1f5f9; }
+        .qty-input { width: 30px; text-align: center; font-weight: 800; border: none; background: transparent; font-size: 1rem; color: #1e293b; pointer-events: none; }
+        .qty-input:focus { outline: none; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        
+        /* 시각적 구분을 위한 카드 스타일 */
+        .item-card { @apply bg-white p-4 rounded-3xl border border-slate-200 flex flex-col items-center justify-between gap-3 transition-all hover:border-blue-400 hover:shadow-lg shadow-sm relative overflow-hidden; }
+        .item-card i { @apply text-2xl mb-1; }
+        .label-text { @apply text-xs font-extrabold text-slate-600 whitespace-nowrap; }
+        .btn-qty { @apply w-7 h-7 flex items-center justify-center rounded-lg border transition-all active:scale-90 font-black text-sm; }
+        
+        .damage-group .item-card i { @apply text-orange-400; }
+        .loss-group .item-card i { @apply text-slate-400; }
+        
+        /* 수량 조절 테두리 강조 */
+        .qty-container { @apply flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-100; }
+    </style>
+</head>
+<body class="min-h-screen pb-10 text-slate-900">
+
+    <!-- Header -->
+    <nav class="bg-blue-600 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <h1 class="text-lg font-extrabold flex items-center gap-2">
+                <i class="fas fa-desktop"></i> 하주초 스마트기기 관리
+            </h1>
+            <div class="flex bg-blue-700 rounded-lg p-1">
+                <button onclick="switchPage('request')" id="btn-request" class="px-4 py-1.5 rounded-md font-bold transition-all bg-white text-blue-600 shadow-sm text-sm">신청</button>
+                <button onclick="switchPage('admin')" id="btn-admin" class="px-4 py-1.5 rounded-md font-bold transition-all text-blue-100 hover:text-white text-sm">튜터</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-4xl mx-auto p-4">
+        
+        <!-- PAGE: REQUEST -->
+        <section id="page-request" class="space-y-4">
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="bg-slate-50 px-6 py-5 border-b flex justify-between items-center text-center sm:text-left">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-slate-800">유지보수 신청</h2>
+                        <p class="text-blue-600 text-[13px] font-extrabold mt-1">
+                            <i class="fas fa-running mr-1"></i> 신청이 완료되면 디지털 튜터가 교실로 찾아갑니다.
+                        </p>
+                    </div>
+                    <div class="bg-white p-3 rounded-2xl shadow-inner hidden sm:block">
+                         <i class="fas fa-tools text-blue-400 text-xl"></i>
+                    </div>
+                </div>
+
+                <form id="asForm" class="p-6 space-y-8">
+                    <!-- Grade/Class -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-slate-400 ml-1">학년 선택</label>
+                            <select name="grade" required class="w-full p-4 bg-slate-100 rounded-2xl border-2 border-transparent focus:border-blue-500 outline-none transition-all font-bold text-base appearance-none">
+                                <option value="">학년 선택</option>
+                                <option value="1">1학년</option><option value="2">2학년</option><option value="3">3학년</option>
+                                <option value="4">4학년</option><option value="5">5학년</option><option value="6">6학년</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-slate-400 ml-1">학반 입력</label>
+                            <input type="number" name="class" required placeholder="반 입력" min="1" class="w-full p-4 bg-slate-100 rounded-2xl border-2 border-transparent focus:border-blue-500 outline-none transition-all font-bold text-base">
+                        </div>
+                    </div>
+
+                    <!-- Main Device -->
+                    <div class="space-y-3">
+                        <h3 class="font-extrabold text-blue-600 flex items-center gap-2 text-sm uppercase tracking-tighter ml-1">
+                            <i class="fas fa-tablet-alt"></i> 태블릿 본체 고장
+                        </h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="flex items-center justify-between bg-blue-50 p-4 rounded-2xl border-2 border-blue-100">
+                                <span class="text-sm font-extrabold text-slate-700">액정/화면 고장</span>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" onclick="changeQty(this, -1)" class="btn-qty bg-white border-blue-200 text-blue-400">-</button>
+                                    <input type="number" data-key="Screen_Fail" value="0" min="0" class="qty-input">
+                                    <button type="button" onclick="changeQty(this, 1)" class="btn-qty bg-blue-600 text-white border-blue-600">+</button>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between bg-blue-50 p-4 rounded-2xl border-2 border-blue-100">
+                                <span class="text-sm font-extrabold text-slate-700">배터리/전원</span>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" onclick="changeQty(this, -1)" class="btn-qty bg-white border-blue-200 text-blue-400">-</button>
+                                    <input type="number" data-key="Battery_Fail" value="0" min="0" class="qty-input">
+                                    <button type="button" onclick="changeQty(this, 1)" class="btn-qty bg-blue-600 text-white border-blue-600">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Peripherals: Damage -->
+                    <div class="space-y-3 damage-group">
+                        <h3 class="font-extrabold text-orange-600 flex items-center gap-2 text-sm uppercase tracking-tighter ml-1">
+                            <i class="fas fa-hammer"></i> 소모품 파손 (기존 물품 있음)
+                        </h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                            <div class="item-card">
+                                <i class="fas fa-pen-nib"></i>
+                                <span class="label-text">터치펜</span>
+                                <div class="qty-container">
+                                    <button type="button" onclick="changeQty(this, -1)" class="btn-qty bg-white border-slate-200 text-slate-400">
+                                        <i class="fas fa-minus text-[10px] m-0"></i>
+                                    </button>
+                                    <input type="number" data-key="Pen_Damage" value="0" min="0" class="qty-input">
+                                    <button type="button" onclick="changeQty(this, 1)" class="btn-qty bg-blue-600 text-white border-blue-600">
+                                        <i class="fas fa-plus text-[10px] m-0"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="item-card">
+                                <i class="fas fa-tablet-alt"></i>
+                                <span class="label-text">케이스</span>
+                                <div class="qty-container">
+                                    <button type="button" onclick="changeQty(this, -1)" class="btn-qty bg-white border-slate-200 text-slate-400">
+                                        <i class="fas fa-minus text-[10px] m-0"></i>
+                                    </button>
+                                    <input type="number" data-key="Case_Damage" value="0" min="0" class="qty-input">
+                                    <button type="button" onclick="changeQty(this, 1)" class="btn-qty bg-blue-600 text-white border-blue-600">
+                                        <i class="fas fa-plus text-[10px] m-0"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="item-card">
+                                <i class="fas fa-layer-group"></i>
+                                <span class="label-text">액정필름</span>
+                                <div class="qty-container">
+                                    <button type="button" onclick="changeQty(this, -1)" class="btn-qty bg-white border-slate-200 text-slate-400">
+                                        <i class="fas fa-minus text-[10px] m-0"></i>
+                                    </button>
+                                    <input type="number" data-key="Film_Damage" value="0" min="0" class="qty-input">
+                                    <button type="button" onclick="changeQty(this, 1)" class="btn-qty bg-blue-600 text-white border-blue-600">
+                                        <i class="fas fa-plus text-[10px] m-0"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="item-card">
+                                <i class="fas fa-headphones"></i>
+                                <span class="label-text">이어폰</span>
+                                <div class="qty-container">
+                                    <button type="button" onclick="changeQty(this, -1)" class="btn-qty bg-white border-slate-200 text-slate-400">
+                                        <i class="fas fa-minus text-[10px] m-0"></i>
+                                    </button>
+                                    <input type="number" data-key="Earphone_Damage" value="0" min="0" class="qty-input">
+                                    <button type="button" onclick="changeQty(this, 1)" class="btn-qty bg-blue-600 text-white border-blue-600">
+                                        <i class="fas fa-plus text-[10px] m-0"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="item-card">
+                                <i class="fas fa-keyboard"></i>
+                                <span class="label-text">키보드</span>
+                                <div class="qty-container">
+                                    <button type="button" onclick="changeQty(this, -1)" class="btn-qty bg-white border-slate-200 text-slate-400">
+                                        <i class="fas fa-minus text-[10px] m-0"></i>
+                                    </button>
+                                    <input type="number" data-key="Keyboard_Damage" value="0" min="0" class="qty-input">
+                                    <button type="button" onclick="changeQty(this, 1)" class="btn-qty bg-blue-600 text-white border-blue-600">
+                                        <i class="fas fa-plus text-[10px] m-0"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Peripherals: Loss -->
+                    <div class="space-y-3 loss-group">
+                        <h3 class="font-extrabold text-slate-600 flex items-center gap-2 text-sm uppercase tracking-tighter ml-1">
+                            <i class="fas fa-search-minus"></i> 소모품 분실 (물품 사라짐)
+                        </h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                            <div class="item-card">
+                                <i class="fas fa-pen-nib"></i>
+                                <span class="label-text">터치펜</span>
+                                <div class="qty-container">
+                                    <button type="button" onclick="changeQty(this, -1)" class="btn-qty bg-white border-slate-200 text-slate-400">
+                                        <i class="fas fa-minus text-[10px] m-0"></i>
+                                    </button>
+                                    <input type="number" data-key="Pen_Loss" value="0" min="0" class="qty-input">
+                                    <button type="button" onclick="changeQty(this, 1)" class="btn-qty bg-blue-600 text-white border-blue-600">
+                                        <i class="fas fa-plus text-[10px] m-0"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="item-card">
+                                <i class="fas fa-tablet-alt"></i>
+                                <span class="label-text">케이스</span>
+                                <div class="qty-container">
+                                    <button type="button" onclick="changeQty(this, -1)" class="btn-qty bg-white border-slate-200 text-slate-400">
+                                        <i class="fas fa-minus text-[10px] m-0"></i>
+                                    </button>
+                                    <input type="number" data-key="Case_Loss" value="0" min="0" class="qty-input">
+                                    <button type="button" onclick="changeQty(this, 1)" class="btn-qty bg-blue-600 text-white border-blue-600">
+                                        <i class="fas fa-plus text-[10px] m-0"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="item-card">
+                                <i class="fas fa-layer-group"></i>
+                                <span class="label-text">액정필름</span>
+                                <div class="qty-container">
+                                    <button type="button" onclick="changeQty(this, -1)" class="btn-qty bg-white border-slate-200 text-slate-400">
+                                        <i class="fas fa-minus text-[10px] m-0"></i>
+                                    </button>
+                                    <input type="number" data-key="Film_Loss" value="0" min="0" class="qty-input">
+                                    <button type="button" onclick="changeQty(this, 1)" class="btn-qty bg-blue-600 text-white border-blue-600">
+                                        <i class="fas fa-plus text-[10px] m-0"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="item-card">
+                                <i class="fas fa-headphones"></i>
+                                <span class="label-text">이어폰</span>
+                                <div class="qty-container">
+                                    <button type="button" onclick="changeQty(this, -1)" class="btn-qty bg-white border-slate-200 text-slate-400">
+                                        <i class="fas fa-minus text-[10px] m-0"></i>
+                                    </button>
+                                    <input type="number" data-key="Earphone_Loss" value="0" min="0" class="qty-input">
+                                    <button type="button" onclick="changeQty(this, 1)" class="btn-qty bg-blue-600 text-white border-blue-600">
+                                        <i class="fas fa-plus text-[10px] m-0"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="item-card">
+                                <i class="fas fa-keyboard"></i>
+                                <span class="label-text">키보드</span>
+                                <div class="qty-container">
+                                    <button type="button" onclick="changeQty(this, -1)" class="btn-qty bg-white border-slate-200 text-slate-400">
+                                        <i class="fas fa-minus text-[10px] m-0"></i>
+                                    </button>
+                                    <input type="number" data-key="Keyboard_Loss" value="0" min="0" class="qty-input">
+                                    <button type="button" onclick="changeQty(this, 1)" class="btn-qty bg-blue-600 text-white border-blue-600">
+                                        <i class="fas fa-plus text-[10px] m-0"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Others -->
+                    <div class="space-y-2">
+                        <label class="text-[12px] font-extrabold text-slate-400 ml-1 uppercase tracking-wider">기타 요구사항</label>
+                        <textarea name="others" rows="4" placeholder="상세 예시:
+- 충전함 5번칸 전원 불량으로 충전 불가
+- 태블릿 1대 공장 초기화 및 특정 앱 설치 요청
+- 기기 암호 분실로 인한 잠금 해제 필요
+- e학습터 또는 디지털교과서 접속 오류 등" class="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-blue-500 outline-none transition-all text-sm font-medium leading-relaxed"></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full bg-blue-600 text-white font-black py-5 rounded-2xl shadow-lg hover:bg-blue-700 active:scale-[0.98] transition-all text-lg tracking-tight">
+                        신청 내용 제출하기
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- PAGE: ADMIN -->
+        <section id="page-admin" class="hidden space-y-4">
+            <div class="flex justify-between items-center bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
+                <div>
+                    <h2 class="text-xl font-black text-slate-800">유지보수 관리 현황 <span id="pending-count" class="text-blue-600 ml-1">0</span></h2>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase">Haju Elementary Smart Management</p>
+                </div>
+                <button onclick="fetchData()" class="w-12 h-12 flex items-center justify-center bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all shadow-sm">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            <div id="adminList" class="space-y-4"></div>
+        </section>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 rounded-2xl bg-slate-900 text-white shadow-2xl opacity-0 transition-all pointer-events-none z-[100] font-bold text-sm">
+        메시지
+    </div>
+
+    <script>
+        // 여기에 배포된 Apps Script URL을 넣으세요.
+        const SCRIPT_URL = ""; 
+
+        const ITEM_LABELS = {
+            'Screen_Fail': '액정', 'Battery_Fail': '배터리', 
+            'Pen_Damage': '펜파손', 'Case_Damage': '케이스파손', 'Film_Damage': '필름파손', 'Earphone_Damage': '이어폰파손', 'Keyboard_Damage': '키보드파손', 
+            'Pen_Loss': '펜분실', 'Case_Loss': '케이스분실', 'Film_Loss': '필름분실', 'Earphone_Loss': '이어폰분실', 'Keyboard_Loss': '키보드분실'
+        };
+
+        function changeQty(btn, step) {
+            const input = btn.parentElement.querySelector('input');
+            let val = parseInt(input.value) + step;
+            input.value = val < 0 ? 0 : val;
+        }
+
+        function switchPage(page) {
+            document.getElementById('page-request').classList.toggle('hidden', page !== 'request');
+            document.getElementById('page-admin').classList.toggle('hidden', page !== 'admin');
+            const btnReq = document.getElementById('btn-request');
+            const btnAdm = document.getElementById('btn-admin');
+            if(page === 'request') {
+                btnReq.className = "px-4 py-1.5 rounded-md font-bold transition-all bg-white text-blue-600 shadow-sm text-sm";
+                btnAdm.className = "px-4 py-1.5 rounded-md font-bold transition-all text-blue-100 hover:text-white text-sm";
+            } else {
+                btnReq.className = "px-4 py-1.5 rounded-md font-bold transition-all text-blue-100 hover:text-white text-sm";
+                btnAdm.className = "px-4 py-1.5 rounded-md font-bold transition-all bg-white text-blue-600 shadow-sm text-sm";
+                fetchData();
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.remove('opacity-0');
+            toast.style.bottom = '12%';
+            setTimeout(() => { toast.classList.add('opacity-0'); toast.style.bottom = '10%'; }, 3000);
+        }
+
+        document.getElementById('asForm').onsubmit = async (e) => {
+            e.preventDefault();
+            if(!SCRIPT_URL) return showToast("API URL을 설정해주세요.");
+            
+            const formData = new FormData(e.target);
+            const qtyInputs = document.querySelectorAll('.qty-input');
+            const items = {};
+            let totalQty = 0;
+
+            qtyInputs.forEach(input => {
+                const val = parseInt(input.value);
+                if (val > 0) {
+                    items[input.getAttribute('data-key')] = val;
+                    totalQty += val;
+                }
+            });
+
+            if (totalQty === 0 && !formData.get('others').trim()) return showToast("신청할 항목의 수량을 입력해주세요.");
+
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true; btn.innerText = "접수 중...";
+
+            try {
+                await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({
+                    action: 'add', grade: formData.get('grade'), class: formData.get('class'),
+                    category: '스마트기기', items: items, others: formData.get('others')
+                })});
+                showToast("접수되었습니다! 튜터가 확인 후 교실로 방문합니다.");
+                e.target.reset();
+                qtyInputs.forEach(i => i.value = 0);
+            } catch (err) { showToast("제출 실패. URL 배포 상태를 확인하세요."); } 
+            finally { btn.disabled = false; btn.innerText = "신청 내용 제출하기"; }
+        };
+
+        async function fetchData() {
+            if(!SCRIPT_URL) return;
+            const container = document.getElementById('adminList');
+            container.innerHTML = `<div class="p-16 text-center text-slate-400 text-sm font-bold">내역을 안전하게 불러오는 중...</div>`;
+            try {
+                const response = await fetch(SCRIPT_URL);
+                const data = await response.json();
+                const pendingCount = data.filter(d => d.Status === '대기').length;
+                document.getElementById('pending-count').innerText = pendingCount;
+
+                if(data.length === 0) {
+                    container.innerHTML = `<div class="p-20 text-center text-slate-300 text-sm font-bold">현재 접수된 유지보수 내역이 없습니다.</div>`;
+                    return;
+                }
+
+                container.innerHTML = data.reverse().map(item => {
+                    let itemsHtml = [];
+                    Object.keys(ITEM_LABELS).forEach(key => {
+                        if (item[key] > 0) {
+                            itemsHtml.push(`<span class="inline-flex items-center px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg text-[11px] font-black border border-blue-100 shadow-sm">${ITEM_LABELS[key]} ${item[key]}개</span>`);
+                        }
+                    });
+
+                    return `
+                        <div class="bg-white rounded-3xl p-6 shadow-sm border ${item.Status === '완료' ? 'opacity-60 grayscale border-slate-200' : 'border-blue-100 ring-4 ring-blue-50/50'}">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-4 border-b border-slate-50">
+                                <div class="flex items-center gap-4">
+                                    <div class="bg-slate-900 text-white w-14 h-14 rounded-2xl flex flex-col items-center justify-center leading-none shadow-lg">
+                                        <span class="text-[10px] font-extrabold mb-1 opacity-70">${item.Grade}학년</span>
+                                        <span class="text-xl font-black">${item.Class}반</span>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-black text-slate-800 text-lg">교실 AS 요청</h3>
+                                        <p class="text-[10px] text-slate-400 font-bold tracking-tight uppercase">${new Date(item.Timestamp).toLocaleString()}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 w-full sm:w-auto">
+                                    <span class="px-4 py-2 rounded-xl text-[11px] font-black tracking-widest shadow-inner ${item.Status === '완료' ? 'bg-green-50 text-green-600' : 'bg-yellow-50 text-yellow-600'}">
+                                        ${item.Status}
+                                    </span>
+                                    <button onclick="updateStatus('${item.ID}', '${item.Status === '완료' ? '대기' : '완료'}')" 
+                                        class="flex-1 sm:flex-none px-6 py-2 bg-slate-800 text-white rounded-xl text-xs font-extrabold hover:bg-slate-700 transition-all shadow-md active:scale-95">
+                                        ${item.Status === '완료' ? '대기 전환' : '완료 처리'}
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap gap-2 mb-3">${itemsHtml.length > 0 ? itemsHtml.join('') : '<span class="text-[11px] text-slate-300 italic font-bold">수량 항목 없음</span>'}</div>
+                            ${item.Others ? `<div class="bg-slate-50 p-4 rounded-2xl text-[12px] text-slate-600 border border-slate-100 font-medium whitespace-pre-wrap leading-relaxed shadow-inner">📌 <strong>상세내용:</strong> ${item.Others}</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) { container.innerHTML = `<div class="p-20 text-center text-red-400 font-bold">서버 연결 오류. API URL을 다시 확인해주세요.</div>`; }
+        }
+
+        async function updateStatus(id, nextStatus) {
+            try {
+                await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'update', id, status: nextStatus }) });
+                showToast(`[${nextStatus}] 상태로 변경되었습니다.`);
+                fetchData();
+            } catch (err) { showToast("상태 변경에 실패했습니다."); }
+        }
+    </script>
+</body>
+</html>
