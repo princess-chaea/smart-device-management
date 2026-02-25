@@ -373,7 +373,7 @@
 - 충전함 5번칸 전원 불량으로 충전 불가
 - 태블릿 1대 공장 초기화 및 특정 앱 설치 요청
 - 기기 암호 분실로 인한 잠금 해제 필요
-- 워크스페이스 계정 접속 오류 등"
+- e학습터 또는 디지털교과서 접속 오류 등"
                             class="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-blue-500 outline-none transition-all text-sm font-medium leading-relaxed"></textarea>
                     </div>
 
@@ -502,35 +502,48 @@
                     let itemsHtml = [];
                     Object.keys(ITEM_LABELS).forEach(key => {
                         if (item[key] > 0) {
-                            itemsHtml.push(`<span class="inline-flex items-center px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg text-[11px] font-black border border-blue-100 shadow-sm">${ITEM_LABELS[key]} ${item[key]}개</span>`);
+                            itemsHtml.push(`<span class="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-xl text-[13px] font-black border-2 border-blue-100 shadow-sm transition-all hover:scale-105">${ITEM_LABELS[key]} ${item[key]}개</span>`);
                         }
                     });
 
                     return `
-                        <div class="bg-white rounded-3xl p-6 shadow-sm border ${item.Status === '완료' ? 'opacity-60 grayscale border-slate-200' : 'border-blue-100 ring-4 ring-blue-50/50'}">
-                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-4 border-b border-slate-50">
-                                <div class="flex items-center gap-4">
-                                    <div class="bg-slate-900 text-white w-14 h-14 rounded-2xl flex flex-col items-center justify-center leading-none shadow-lg">
-                                        <span class="text-[10px] font-extrabold mb-1 opacity-70">${item.Grade}학년</span>
-                                        <span class="text-xl font-black">${item.Class}반</span>
+                        <div class="bg-white rounded-[2.5rem] p-8 shadow-sm border-2 ${item.Status === '완료' ? 'opacity-50 grayscale border-slate-200' : 'border-blue-100 ring-8 ring-blue-50/30'}">
+                            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6 pb-6 border-b-2 border-slate-50">
+                                <div class="flex items-center gap-6">
+                                    <div class="bg-slate-900 text-white w-20 h-20 rounded-[2rem] flex flex-col items-center justify-center leading-tight shadow-xl ring-4 ring-white">
+                                        <span class="text-[12px] font-extrabold mb-0.5 opacity-80">${item.Grade}학년</span>
+                                        <span class="text-3xl font-black">${item.Class}반</span>
                                     </div>
                                     <div>
-                                        <h3 class="font-black text-slate-800 text-lg">교실 AS 요청</h3>
-                                        <p class="text-[10px] text-slate-400 font-bold tracking-tight uppercase">${new Date(item.Timestamp).toLocaleString()}</p>
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <h3 class="font-black text-slate-800 text-xl tracking-tight">교실 AS 요청</h3>
+                                            <span class="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full font-bold uppercase tracking-widest leading-none">ID: ${item.ID.slice(-4)}</span>
+                                        </div>
+                                        <p class="text-[11px] text-slate-400 font-extrabold flex items-center gap-1.5 uppercase tracking-tighter">
+                                            <i class="far fa-clock"></i> ${new Date(item.Timestamp).toLocaleString()}
+                                        </p>
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-2 w-full sm:w-auto">
-                                    <span class="px-4 py-2 rounded-xl text-[11px] font-black tracking-widest shadow-inner ${item.Status === '완료' ? 'bg-green-50 text-green-600' : 'bg-yellow-50 text-yellow-600'}">
+                                <div class="flex items-center gap-3 w-full md:w-auto">
+                                    <span class="px-5 py-3 rounded-2xl text-[12px] font-black tracking-[0.15em] shadow-inner flex items-center gap-2 ${item.Status === '완료' ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'}">
+                                        <i class="fas ${item.Status === '완료' ? 'fa-check-circle' : 'fa-hourglass-half'}"></i>
                                         ${item.Status}
                                     </span>
                                     <button onclick="updateStatus('${item.ID}', '${item.Status === '완료' ? '대기' : '완료'}')" 
-                                        class="flex-1 sm:flex-none px-6 py-2 bg-slate-800 text-white rounded-xl text-xs font-extrabold hover:bg-slate-700 transition-all shadow-md active:scale-95">
+                                        class="flex-1 md:flex-none px-8 py-3 bg-slate-900 text-white rounded-2xl text-xs font-black hover:bg-slate-800 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
+                                        <i class="fas ${item.Status === '완료' ? 'fa-undo' : 'fa-check'}"></i>
                                         ${item.Status === '완료' ? '대기 전환' : '완료 처리'}
                                     </button>
                                 </div>
                             </div>
-                            <div class="flex flex-wrap gap-2 mb-3">${itemsHtml.length > 0 ? itemsHtml.join('') : '<span class="text-[11px] text-slate-300 italic font-bold">수량 항목 없음</span>'}</div>
-                            ${item.Others ? `<div class="bg-slate-50 p-4 rounded-2xl text-[12px] text-slate-600 border border-slate-100 font-medium whitespace-pre-wrap leading-relaxed shadow-inner">📌 <strong>상세내용:</strong> ${item.Others}</div>` : ''}
+                            <div class="flex flex-wrap gap-2.5 mb-5">${itemsHtml.length > 0 ? itemsHtml.join('') : '<span class="text-xs text-slate-300 italic font-extrabold px-1">수량 항목 없음</span>'}</div>
+                            ${item.Others ? `<div class="bg-blue-50/50 p-6 rounded-3xl text-[14px] text-slate-700 border-2 border-blue-50/50 font-bold whitespace-pre-wrap leading-relaxed shadow-sm relative overflow-hidden">
+                                <div class="absolute top-0 right-0 p-4 opacity-5"><i class="fas fa-quote-right text-4xl"></i></div>
+                                <div class="flex items-start gap-2">
+                                    <span class="text-blue-400"><i class="fas fa-sticky-note"></i></span>
+                                    <div><strong class="text-slate-900 block mb-1">상세내용</strong> ${item.Others}</div>
+                                </div>
+                            </div>` : ''}
                         </div>
                     `;
                 }).join('');
@@ -548,4 +561,3 @@
 </body>
 
 </html>
-
